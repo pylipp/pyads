@@ -855,7 +855,8 @@ def adsGetSymbolInfo(port: int, address: AmsAddr, data_name: str) -> SAdsSymbolE
 
 
 def adsSumRead(
-    port: int, address: AmsAddr, data_names: List[str], data_symbols
+    port: int, address: AmsAddr, data_names: List[str], data_symbols,
+    structured_data_names: List[str]
 ) -> Dict[str, Any]:
     """Perform a sum read to get the value of multiple variables
 
@@ -864,6 +865,7 @@ def adsSumRead(
     :param data_names: list of variables names to read
     :param data_symbols: list of dictionaries of ADS Symbol Info
     :type data_symbols: dict[str, ADSSymbolInfo]
+    :param structured_data_names: list of structured variable names
     :return: result: dict of variable names and values
     :rtype: dict[str, Any]
     """
@@ -898,7 +900,11 @@ def adsSumRead(
         if error:
             result[data_name] = ERROR_CODES[error]
         else:
-            if (
+            if data_name in structured_data_names:
+                value = sum_response[
+                    data_start + offset :
+                    data_start + offset + data_symbols[data_name].size]
+            elif (
                 data_symbols[data_name].dataType != ADST_STRING
                 and data_symbols[data_name].dataType != ADST_WSTRING
             ):

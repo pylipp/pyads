@@ -835,13 +835,17 @@ class Connection(object):
         return None
 
     def read_list_by_name(
-        self, data_names: List[str], cache_symbol_info: bool = True
+        self, data_names: List[str], cache_symbol_info: bool = True,
+        structure_defs: Optional[Dict[str, StructureDef]] = None
     ) -> Dict[str, Any]:
         """Read a list of variables in a single ADS call.
 
         :param data_names: list of variable names to be read
         :type data_names: list[str]
         :param bool cache_symbol_info: when True, symbol info will be cached for future reading
+        :param dict structure_defs: for structured variables, optional mapping of
+            data name to special tuple defining the structure and
+            types contained within it according to PLCTYPE constants
 
         :return adsSumRead: A dictionary containing variable names from data_names as keys and values read from PLC for each variable
         :rtype dict(str, Any)
@@ -859,7 +863,14 @@ class Connection(object):
                 i: adsGetSymbolInfo(self._port, self._adr, i) for i in data_names
             }
 
-        return adsSumRead(self._port, self._adr, data_names, data_symbols)
+        structure_defs = structure_defs or {}
+        result = adsSumRead(self._port, self._adr, data_names, data_symbols,
+                            list(structure_defs.keys()))
+
+        for data_name, structure_def in structure_defs.items():
+            result[data_name] = dict_from_bytes(result[data_name], structure_def)
+
+        return result
 
     def write_list_by_name(
         self, data_names_and_values: Dict[str, Any], cache_symbol_info: bool = True
